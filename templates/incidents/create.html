@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load soc_tags %}
+{% block title %}New incident{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{% url 'alerts:queue' %}">Alerts</a> / New incident</p>
+<h1>Create incident</h1>
+<p class="subtitle">{{ alerts|length }} alert{{ alerts|length|pluralize }} selected. Severity will be {{ severity_label }} (highest of the selected alerts; {{ mapping }}).</p>
+
+<form method="post" action="{% url 'incidents:create' %}" class="card form-card">
+  {% csrf_token %}
+  <input type="hidden" name="confirm" value="1">
+  {% for alert in alerts %}<input type="hidden" name="alert_ids" value="{{ alert.pk }}">{% endfor %}
+  <div class="field">
+    <label for="title">Title</label>
+    <input id="title" name="title" type="text" maxlength="200" value="{{ title }}" required>
+  </div>
+  <p>Severity: {% severity_pill severity %} <span class="muted small">You can change it later on the incident.</span></p>
+  <button type="submit" class="btn btn-primary">Create incident</button>
+  <a class="btn btn-link" href="{% url 'alerts:queue' %}">Cancel</a>
+</form>
+
+<div class="card table-card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Time (UTC)</th><th>Severity</th><th>Rule</th><th>Description</th><th>Source IP</th></tr></thead>
+      <tbody>
+        {% for alert in alerts %}
+        <tr>
+          <td class="mono nowrap">{{ alert.timestamp|date:"Y-m-d H:i:s" }}</td>
+          <td>{% severity_pill alert.severity %}</td>
+          <td class="mono">{{ alert.rule_id|default:"-" }}</td>
+          <td>{{ alert.rule_description|default:"-" }}</td>
+          <td class="mono">{{ alert.src_ip|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% load soc_tags %}
+{% block title %}{{ incident.display_id }}{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{% url 'incidents:list' %}">Incidents</a> / <span class="mono">{{ incident.display_id }}</span></p>
+<h1>{{ incident.title }}</h1>
+
+<div class="badges">
+  {% severity_pill incident.severity %}
+  <span class="badge-text">Status: <strong>{{ incident.status_label }}</strong></span>
+  {% if summary.source_ips %}<span class="badge-text">Source <span class="mono">{{ summary.source_ips|join:", " }}</span></span>{% endif %}
+  {% if incident.escalated_to and incident.status == 'escalated' %}<span class="badge-text">Escalated to <strong>{{ incident.escalated_to }}</strong></span>{% endif %}
+</div>
+
+{% if perms.incidents.change_incident %}
+<div class="actions" data-action-group>
+  {% if can_start %}
+  <form method="post" action="{% url 'incidents:investigate' incident.pk %}">{% csrf_token %}
+    <button type="submit" class="btn btn-secondary">Start investigating</button>
+  </form>
+  {% endif %}
+  {% if can_return %}
+  <form method="post" action="{% url 'incidents:investigate' incident.pk %}">{% csrf_token %}
+    <button type="submit" class="btn btn-secondary">Return to investigating</button>
+  </form>
+  {% endif %}
+
+  {% if can_escalate %}
+  <details class="action">
+    <summary class="btn btn-primary">Escalate to L2</summary>
+    <form method="post" action="{% url 'incidents:escalate' incident.pk %}" class="action-panel">{% csrf_token %}
+      <input type="hidden" name="target" value="L2">
+      <label for="esc-reason">Reason for escalation (required)</label>
+      <textarea id="esc-reason" name="reason" rows="3" required></textarea>
+      <button type="submit" class="btn btn-primary">Escalate to L2</button>
+    </form>
+  </details>
+  {% endif %}
+
+  {% if can_close %}
+  <details class="action">
+    <summary class="btn btn-warning">Mark false positive</summary>
+    <form method="post" action="{% url 'incidents:false_positive' incident.pk %}" class="action-panel">{% csrf_token %}
+      <label for="fp-reason">Why is this a false positive? (required)</label>
+      <textarea id="fp-reason" name="reason" rows="3" required></textarea>
+      <button type="submit" class="btn btn-warning">Mark false positive</button>
+    </form>
+  </details>
+  <details class="action">
+    <summary class="btn btn-secondary">Close incident</summary>
+    <form method="post" action="{% url 'incidents:close' incident.pk %}" class="action-panel">{% csrf_token %}
+      <label for="close-reason">Reason for closing (required)</label>
+      <textarea id="close-reason" name="reason" rows="3" required></textarea>
+      <button type="submit" class="btn btn-secondary">Close incident</button>
+    </form>
+  </details>
+  {% endif %}
+
+  {% if can_reopen %}
+  <details class="action">
+    <summary class="btn btn-secondary">Reopen incident</summary>
+    <form method="post" action="{% url 'incidents:reopen' incident.pk %}" class="action-panel">{% csrf_token %}
+      <label for="reopen-reason">Reason (optional)</label>
+      <textarea id="reopen-reason" name="reason" rows="3"></textarea>
+      <button type="submit" class="btn btn-secondary">Reopen incident</button>
+    </form>
+  </details>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="columns">
+  <div class="col-main">
+    <section class="card">
+      <h2>Alert timeline</h2>
+      <ul class="plain-list">
+        {% for alert in alerts %}
+        <li><span class="mono">{{ alert.timestamp|date:"H:i:s" }}</span> <span class="mono muted-mono">{{ alert.rule_id }}</span> {{ alert.rule_description }}{% if alert.is_demo %} <span class="tag">Demo</span>{% endif %}</li>
+        {% empty %}
+        <li class="muted">No alerts are linked to this incident.</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Analyst notes</h2>
+      <ul class="plain-list notes">
+        {% for note in notes %}
+        <li>
+          <strong>{{ note.author.get_username }}</strong>
+          <span class="muted" title="{{ note.created_at|date:'Y-m-d H:i:s' }} UTC">{{ note.created_at|date:"j M H:i" }}</span>
+          {% if note.kind != 'note' %}<span class="tag tag-{{ note.kind }}">{{ note.get_kind_display }}</span>{% endif %}
+          <div class="note-text">{{ note.text|linebreaksbr }}</div>
+        </li>
+        {% empty %}
+        <li class="muted">No notes yet.</li>
+        {% endfor %}
+      </ul>
+      {% if perms.incidents.add_incidentnote %}
+      <form method="post" action="{% url 'incidents:add_note' incident.pk %}" class="note-form">{% csrf_token %}
+        <label for="note-text">New note</label>
+        <textarea id="note-text" name="text" rows="4" required></textarea>
+        <button type="submit" class="btn btn-primary">Add note</button>
+      </form>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-side">
+    <section class="card">
+      <h2>Details</h2>
+      <table class="kv">
+        <tr><th scope="row">Agent</th><td>{{ summary.agents|join:", "|default:"-" }}</td></tr>
+        <tr><th scope="row">First seen</th><td class="mono">{% if summary.first_seen %}{{ summary.first_seen|date:"H:i:s" }}{% else %}-{% endif %}</td></tr>
+        <tr><th scope="row">Last seen</th><td class="mono">{% if summary.last_seen %}{{ summary.last_seen|date:"H:i:s" }}{% else %}-{% endif %}</td></tr>
+        <tr><th scope="row">Rules</th><td class="mono">{{ summary.rule_ids|join:", "|default:"-" }}</td></tr>
+        <tr><th scope="row">Assigned</th><td>{{ incident.assigned_to.get_username|default:"Unassigned" }}</td></tr>
+        <tr><th scope="row">Created</th><td class="mono">{{ incident.created_at|date:"Y-m-d H:i" }}</td></tr>
+        {% if incident.closed_at %}<tr><th scope="row">Closed</th><td class="mono">{{ incident.closed_at|date:"Y-m-d H:i" }}</td></tr>{% endif %}
+      </table>
+      {% if summary.first_seen %}<p class="muted small">Times are UTC. Dates: {{ summary.first_seen|date:"Y-m-d" }}{% if summary.first_seen|date:"Y-m-d" != summary.last_seen|date:"Y-m-d" %} to {{ summary.last_seen|date:"Y-m-d" }}{% endif %}.</p>{% endif %}
+      {% if perms.incidents.change_incident %}<a class="btn btn-secondary" href="{% url 'incidents:edit' incident.pk %}">Edit details</a>{% endif %}
+    </section>
+
+    <section class="card">
+      <h2>Recommended actions</h2>
+      {% if incident.recommended_action_list %}
+      <ul class="bullets">
+        {% for action in incident.recommended_action_list %}<li>{{ action }}</li>{% endfor %}
+      </ul>
+      {% else %}
+      <p class="muted">None recorded yet.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

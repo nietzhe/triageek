@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block layout %}
+<main class="login-wrap" id="main">
+  <div class="card login-card">
+    <div class="brand brand-login">&gt; TRIAGEEK v1 - [Mini SOC Lab]</div>
+    <h1>Sign in</h1>
+    <p class="muted">Lab-grade SOC workflow tool. Sign in to triage alerts.</p>
+    {% if form.errors %}
+    <div class="message message-error" role="alert">Wrong username or password.</div>
+    {% endif %}
+    <form method="post" action="{% url 'login' %}">
+      {% csrf_token %}
+      <div class="field">
+        <label for="id_username">Username</label>
+        <input type="text" name="username" id="id_username" autocomplete="username" autofocus required>
+      </div>
+      <div class="field">
+        <label for="id_password">Password</label>
+        <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+      </div>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="btn btn-primary">Sign in</button>
+    </form>
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load soc_tags %}
+{% block title %}Incidents{% endblock %}
+{% block content %}
+<h1>Incidents</h1>
+<p class="subtitle">Cases grouped from Wazuh alerts.</p>
+
+<form method="get" class="filters filter-bar">
+  <div class="field">
+    <label for="f-status">Status</label>
+    <select id="f-status" name="status">
+      {% for key, label in status_choices %}
+      <option value="{{ key }}" {% if status == key %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-secondary">Filter</button>
+</form>
+
+<div class="card table-card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Assigned</th><th>Created (UTC)</th></tr>
+      </thead>
+      <tbody>
+        {% for incident in page %}
+        <tr>
+          <td class="mono nowrap"><a href="{{ incident.get_absolute_url }}">{{ incident.display_id }}</a></td>
+          <td>{{ incident.title }}</td>
+          <td>{% severity_pill incident.severity %}</td>
+          <td>{{ incident.status_label }}</td>
+          <td>{{ incident.assigned_to.get_username|default:"Unassigned" }}</td>
+          <td class="mono nowrap">{{ incident.created_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty">No incidents{% if status != 'all' %} with this status{% endif %}. Create one by selecting alerts in the <a href="{% url 'alerts:queue' %}">alert queue</a>.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if page.paginator.num_pages > 1 %}
+<nav class="pagination" aria-label="Pagination">
+  {% if page.has_previous %}<a class="btn btn-secondary" href="?status={{ status }}&amp;page={{ page.previous_page_number }}">Previous</a>{% endif %}
+  <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a class="btn btn-secondary" href="?status={{ status }}&amp;page={{ page.next_page_number }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

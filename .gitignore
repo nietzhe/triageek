@@ -1,0 +1,39 @@
+# python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# virtual environments
+.venv
+venv/
+env/
+
+# local configuration and data
+.env
+*.env.*
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+
+# ide files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# os files
+.DS_Store
+Thumbs.db
+
+# test and coverage artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# temp data
+docs/

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load soc_tags %}
+{% block title %}{{ report.period.title }}{% endblock %}
+{% block content %}
+<form method="get" class="filters filter-bar no-print">
+  <div class="field">
+    <label for="r-type">Report type</label>
+    <select id="r-type" name="type">
+      {% for key, label in kind_choices %}
+      <option value="{{ key }}" {% if kind == key %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="r-date">Date</label>
+    <input id="r-date" type="date" name="date" value="{{ selected_date }}">
+  </div>
+  <button type="submit" class="btn btn-secondary">Show report</button>
+  <a class="btn btn-secondary" href="?type={{ kind }}&amp;date={{ selected_date }}&amp;format=md" download>Download Markdown</a>
+  <button type="button" class="btn btn-secondary" data-print>Print / Save as PDF</button>
+</form>
+
+<h1>{{ report.period.title }}</h1>
+<p class="subtitle">{{ report.subtitle_parts|join:" · " }}</p>
+
+<section class="card">
+  <h2>Summary</h2>
+  <p class="prose">{{ report.summary }}</p>
+</section>
+
+<section class="card">
+  <h2>Incidents by severity</h2>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col"></th>
+          {% for row in report.severity_rows %}<th scope="col">{{ row.label }}</th>{% endfor %}
+          <th scope="col">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Incidents</th>
+          {% for row in report.severity_rows %}<td class="mono">{{ row.total }}</td>{% endfor %}
+          <td class="mono">{{ report.total }}</td>
+        </tr>
+        <tr>
+          <th scope="row">False positives</th>
+          {% for row in report.severity_rows %}<td class="mono">{{ row.false_positive }}</td>{% endfor %}
+          <td class="mono">{{ report.false_positives }}</td>
+        </tr>
+        <tr>
+          <th scope="row">Still open</th>
+          {% for row in report.severity_rows %}<td class="mono">{{ row.open }}</td>{% endfor %}
+          <td class="mono">{{ report.open }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Incident log</h2>
+  {% if report.log %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>ID</th><th>Title</th><th>Severity</th><th>Outcome</th></tr></thead>
+      <tbody>
+        {% for row in report.log %}
+        <tr>
+          <td class="mono nowrap"><a href="{{ row.incident.get_absolute_url }}">{{ row.incident.display_id }}</a></td>
+          <td>{{ row.incident.title }}</td>
+          <td>{% severity_pill row.incident.severity %}</td>
+          <td>{{ row.outcome }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">No incidents in this period.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Recommendations</h2>
+  {% if report.recommendations %}
+  <ul class="bullets">{% for action in report.recommendations %}<li>{{ action }}</li>{% endfor %}</ul>
+  {% else %}
+  <p class="muted">No recommended actions were recorded for incidents in this period.</p>
+  {% endif %}
+</section>
+{% endblock %}

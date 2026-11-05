@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<p class="subtitle">Read-only view of how this lab instance is configured. Change values in <code>.env</code> and restart.</p>
+
+<section class="card">
+  <h2>Wazuh alerts file</h2>
+  <table class="kv">
+    <tr><th scope="row">Path</th><td class="mono">{{ alerts_path }}</td></tr>
+    <tr><th scope="row">Status</th><td>{{ alerts_file_status }}</td></tr>
+    <tr><th scope="row">Ingest</th><td>Run <code>python manage.py ingest_alerts</code> (add <code>--follow</code> to keep running).</td></tr>
+  </table>
+  {% if ingest_states %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Ingested file</th><th>Offset (bytes)</th><th>Inode</th><th>Updated (UTC)</th></tr></thead>
+      <tbody>
+        {% for state in ingest_states %}
+        <tr><td class="mono">{{ state.path }}</td><td class="mono">{{ state.offset }}</td><td class="mono">{{ state.inode|default_if_none:"-" }}</td><td class="mono">{{ state.updated_at|date:"Y-m-d H:i:s" }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Data</h2>
+  <table class="kv">
+    <tr><th scope="row">Alerts stored</th><td class="mono">{{ alert_count }}</td></tr>
+    <tr><th scope="row">Of which demo</th><td class="mono">{{ demo_alert_count }}</td></tr>
+  </table>
+  {% if demo_alert_count %}<p class="muted">Demo alerts are flagged and counted separately. Remove them with <code>python manage.py seed_demo --clear</code>.</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>You</h2>
+  <table class="kv">
+    <tr><th scope="row">Username</th><td>{{ user.get_username }}</td></tr>
+    <tr><th scope="row">Roles</th><td>{{ roles|join:", "|default:"none" }}{% if user.is_superuser %} (superuser){% endif %}</td></tr>
+    <tr><th scope="row">Can modify incidents</th><td>{% if perms.incidents.change_incident %}Yes{% else %}No (read-only){% endif %}</td></tr>
+  </table>
+</section>
+
+<section class="card">
+  <h2>About</h2>
+  <p>Severity mapping: {{ severity_mapping }}.</p>
+  <p class="muted">Lab project: alerts come from attacks generated against the author's own VM. This is not production monitoring.{% if debug %} DEBUG is on.{% endif %}</p>
+</section>
+{% endblock %}

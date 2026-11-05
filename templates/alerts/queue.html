@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load soc_tags %}
+{% block title %}Alert queue{% endblock %}
+{% block content %}
+<h1>Alert queue</h1>
+<p class="subtitle">
+  {% if agent_subtitle %}Wazuh alerts ingested from agent {{ agent_subtitle }}{% else %}No alerts have been ingested yet{% endif %}
+</p>
+
+<div class="filter-bar">
+  <form method="get" class="filters" id="filter-form">
+    <div class="field">
+      <label for="f-severity">Severity</label>
+      <select id="f-severity" name="severity">
+        <option value="all">All</option>
+        {% for key, label in severity_choices %}
+        <option value="{{ key }}" {% if filters.severity == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-agent">Agent</label>
+      <select id="f-agent" name="agent">
+        <option value="">All agents</option>
+        {% for agent in agents %}
+        <option value="{{ agent }}" {% if filters.agent == agent %}selected{% endif %}>{{ agent }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-range">Range</label>
+      <select id="f-range" name="range">
+        {% for key, label in range_choices %}
+        <option value="{{ key }}" {% if filters.range == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field field-grow">
+      <label for="f-q">Search</label>
+      <input id="f-q" type="search" name="q" value="{{ filters.q }}" placeholder="rule, IP, text">
+    </div>
+    <button type="submit" class="btn btn-secondary">Filter</button>
+    {% if has_filters %}<a class="btn btn-link" href="{% url 'alerts:queue' %}">Reset</a>{% endif %}
+  </form>
+
+  {% if perms.incidents.add_incident %}
+  <form method="post" action="{% url 'incidents:create' %}" id="create-form" class="create-form">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary" id="create-button" disabled>Create incident from selected (<span id="selected-count">0</span>)</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card table-card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="col-check">
+            {% if perms.incidents.add_incident %}<input type="checkbox" id="select-all" aria-label="Select all new alerts on this page">{% endif %}
+          </th>
+          <th>Time (UTC)</th>
+          <th>Severity</th>
+          <th>Level</th>
+          <th>Rule</th>
+          <th>Description</th>
+          <th>Source IP</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alert in page %}
+        <tr>
+          <td class="col-check">
+            {% if perms.incidents.add_incident and alert.status == 'new' %}
+            <input type="checkbox" class="row-select" name="alert_ids" value="{{ alert.pk }}" form="create-form"
+                   aria-label="Select alert {{ alert.rule_id }} at {{ alert.timestamp|date:'H:i:s' }}">
+            {% endif %}
+          </td>
+          <td class="mono nowrap">{{ alert.timestamp|date:"H:i:s" }}<span class="date-sub">{{ alert.timestamp|date:"Y-m-d" }}</span></td>
+          <td>{% severity_pill alert.severity %}</td>
+          <td class="mono">{{ alert.rule_level|default_if_none:"-" }}</td>
+          <td class="mono">{{ alert.rule_id|default:"-" }}</td>
+          <td>{{ alert.rule_description|default:"-" }}{% if alert.is_demo %} <span class="tag">Demo</span>{% endif %}</td>
+          <td class="mono">{{ alert.src_ip|default:"-" }}</td>
+          <td>
+            {% if alert.status == 'investigating' and alert.incident %}
+              Investigating (<a href="{{ alert.incident.get_absolute_url }}">{{ alert.incident.display_id }}</a>)
+            {% elif alert.incident and alert.status != 'new' %}
+              {{ alert.get_status_display }} (<a href="{{ alert.incident.get_absolute_url }}">{{ alert.incident.display_id }}</a>)
+            {% else %}
+              {{ alert.get_status_display }}
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="empty">No alerts match these filters.{% if has_filters %} Try <a href="{% url 'alerts:queue' %}">resetting them</a>.{% else %} Run <code>ingest_alerts</code> or <code>seed_demo</code> to load some.{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if page.paginator.num_pages > 1 %}
+<nav class="pagination" aria-label="Pagination">
+  {% if page.has_previous %}<a class="btn btn-secondary" href="?{% if base_query %}{{ base_query }}&amp;{% endif %}page={{ page.previous_page_number }}">Previous</a>{% endif %}
+  <span>Page {{ page.number }} of {{ page.paginator.num_pages }} ({{ page.paginator.count }} alerts)</span>
+  {% if page.has_next %}<a class="btn btn-secondary" href="?{% if base_query %}{{ base_query }}&amp;{% endif %}page={{ page.next_page_number }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+
+<p class="footnote">Severity mapping: {{ mapping }}.</p>
+{% endblock %}

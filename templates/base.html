@@ -1,0 +1,50 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}TRIAGEEK v1{% endblock %}_Mini SOC Lab</title>
+  {# Fonts are optional: if Google Fonts is unreachable the system fallbacks in app.css are used. #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+{% block layout %}
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">&gt; TRIAGEEK v1 - [Mini SOC Lab]</div>
+    {% with ns=request.resolver_match.namespace name=request.resolver_match.url_name %}
+    <nav class="nav" aria-label="Main">
+      <a href="{% url 'alerts:queue' %}" {% if ns == 'alerts' %}class="active" aria-current="page"{% endif %}>Alerts</a>
+      <a href="{% url 'incidents:list' %}" {% if ns == 'incidents' %}class="active" aria-current="page"{% endif %}>Incidents</a>
+      <a href="{% url 'reports:report' %}" {% if ns == 'reports' %}class="active" aria-current="page"{% endif %}>Reports</a>
+      <a href="{% url 'accounts:settings' %}" {% if ns == 'accounts' %}class="active" aria-current="page"{% endif %}>Settings</a>
+    </nav>
+    {% endwith %}
+    <div class="sidebar-foot">
+      <div class="whoami">
+        Signed in as <strong>{{ user.get_username }}</strong>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="link-button">Sign out</button>
+        </form>
+      </div>
+      {% if has_demo_data %}<div class="sample-note">Sample lab data</div>{% endif %}
+    </div>
+  </aside>
+  <main class="main" id="main">
+    {% if messages %}
+    <div class="messages" role="status">
+      {% for message in messages %}<div class="message message-{{ message.level_tag }}">{{ message }}</div>{% endfor %}
+    </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}
+<script src="{% static 'js/app.js' %}" defer></script>
+</body>
+</html>

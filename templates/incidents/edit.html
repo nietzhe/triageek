@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ incident.display_id }}{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{% url 'incidents:list' %}">Incidents</a> / <a href="{{ incident.get_absolute_url }}" class="mono">{{ incident.display_id }}</a> / Edit</p>
+<h1>Edit incident</h1>
+
+<form method="post" class="card form-card">
+  {% csrf_token %}
+  <div class="field">
+    <label for="title">Title</label>
+    <input id="title" name="title" type="text" maxlength="200" value="{{ request.POST.title|default:incident.title }}" required>
+  </div>
+  <div class="field">
+    <label for="severity">Severity</label>
+    <select id="severity" name="severity">
+      {% for key, label in severity_choices %}
+      <option value="{{ key }}" {% if key == incident.severity %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="assigned_to">Assigned to</label>
+    <select id="assigned_to" name="assigned_to">
+      <option value="">Unassigned</option>
+      {% for u in users %}
+      <option value="{{ u.pk }}" {% if u.pk == incident.assigned_to_id %}selected{% endif %}>{{ u.get_username }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="recommended_actions">Recommended actions (one per line)</label>
+    <textarea id="recommended_actions" name="recommended_actions" rows="6">{{ request.POST.recommended_actions|default:incident.recommended_actions }}</textarea>
+  </div>
+  <button type="submit" class="btn btn-primary">Save</button>
+  <a class="btn btn-link" href="{{ incident.get_absolute_url }}">Cancel</a>
+</form>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Not allowed{% endblock %}
+{% block layout %}
+<main class="login-wrap" id="main">
+  <div class="card login-card">
+    <h1>403 · Not allowed</h1>
+    <p>Your account does not have permission to do that.</p>
+    <p class="muted">Viewers are read-only. If you need analyst access, ask an administrator to add you to the <code>analyst</code> group.</p>
+    <p><a class="btn btn-secondary" href="{% url 'alerts:queue' %}">Back to alerts</a></p>
+  </div>
+</main>
+{% endblock %}
